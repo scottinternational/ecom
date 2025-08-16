@@ -9,6 +9,9 @@ import { NotificationProvider } from "@/hooks/useNotifications";
 import Dashboard from "./pages/Dashboard";
 import RnD from "./pages/RnD";
 import Production from "./pages/Production";
+import Procurement from "./pages/Procurement";
+import ProductSampleRequests from "./pages/ProductSampleRequests";
+import PurchaseOrders from "./pages/PurchaseOrders";
 import GraphicContent from "./pages/GraphicContent";
 import ListingCatalogue from "./pages/ListingCatalogue";
 import Inventory from "./pages/Inventory";
@@ -47,6 +50,21 @@ const App = () => (
             <Route path="/production" element={
               <ProtectedRoute>
                 <Layout><Production /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/procurement" element={
+              <ProtectedRoute>
+                <Layout><Procurement /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/procurement/sample-requests" element={
+              <ProtectedRoute>
+                <Layout><ProductSampleRequests /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/procurement/purchase-orders" element={
+              <ProtectedRoute>
+                <Layout><PurchaseOrders /></Layout>
               </ProtectedRoute>
             } />
             <Route path="/graphic-content" element={

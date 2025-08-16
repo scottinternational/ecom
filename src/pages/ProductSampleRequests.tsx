@@ -1,13 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye, CheckCircle, Clock, AlertCircle, RefreshCw } from "lucide-react";
-import { ProductSuggestionDialog } from "@/components/ProductSuggestionDialog";
-import { ProductSuggestionDetailsDialog } from "@/components/ProductSuggestionDetailsDialog";
+import { Plus, Eye, Clock, CheckCircle, AlertCircle, RefreshCw, Package } from "lucide-react";
+import { ProductSampleRequestDetailsDialog } from "@/components/ProductSampleRequestDetailsDialog";
 import { useProductSuggestions } from "@/hooks/useProductSuggestions";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const RnD = () => {
+const ProductSampleRequests = () => {
   const { suggestions, loading, error, fetchSuggestions } = useProductSuggestions();
 
   const getStatusIcon = (status: string) => {
@@ -37,7 +36,7 @@ const RnD = () => {
   };
 
   // Calculate stats from real data
-  const totalSuggestions = suggestions.length;
+  const totalRequests = suggestions.length;
   const inResearchCount = suggestions.filter(s => s.status === "In Research").length;
   const sampleReadyCount = suggestions.filter(s => s.status === "Sample Ready").length;
   const approvalPendingCount = suggestions.filter(s => s.status === "Sent for Approval").length;
@@ -47,26 +46,17 @@ const RnD = () => {
       <div className="flex-1 space-y-6 p-6 bg-background">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Research & Development</h1>
+            <h1 className="text-3xl font-bold text-foreground">Product Sample Requests</h1>
             <p className="text-muted-foreground mt-1">
-              Manage product suggestions, research, and sample development
+              Manage product sample requests from R&D team
             </p>
           </div>
-          <ProductSuggestionDialog 
-            trigger={
-              <Button variant="enterprise" className="gap-2">
-                <Plus className="h-4 w-4" />
-                New Product Suggestion
-              </Button>
-            }
-            onSuccess={fetchSuggestions}
-          />
         </div>
         
         <Card className="shadow-enterprise">
           <CardContent className="p-6">
             <div className="text-center">
-              <p className="text-destructive mb-4">Error loading suggestions: {error}</p>
+              <p className="text-destructive mb-4">Error loading requests: {error}</p>
               <Button onClick={fetchSuggestions} variant="outline">
                 <RefreshCw className="h-4 w-4 mr-2" />
                 Retry
@@ -83,31 +73,20 @@ const RnD = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Research & Development</h1>
+          <h1 className="text-3xl font-bold text-foreground">Product Sample Requests</h1>
           <p className="text-muted-foreground mt-1">
-            Manage product suggestions, research, and sample development
+            Manage product sample requests from R&D team
           </p>
         </div>
-        <div className="flex gap-2">
-          <ProductSuggestionDialog 
-            trigger={
-              <Button variant="enterprise" className="gap-2">
-                <Plus className="h-4 w-4" />
-                New Product Suggestion
-              </Button>
-            }
-            onSuccess={fetchSuggestions}
-          />
-          <Button 
-            variant="outline" 
-            onClick={fetchSuggestions}
-            disabled={loading}
-            className="gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-        </div>
+        <Button 
+          variant="outline" 
+          onClick={fetchSuggestions}
+          disabled={loading}
+          className="gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
       {/* Stats Cards */}
@@ -115,7 +94,7 @@ const RnD = () => {
         <Card className="shadow-enterprise">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Total Suggestions
+              Total Requests
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -123,8 +102,8 @@ const RnD = () => {
               <Skeleton className="h-8 w-16" />
             ) : (
               <>
-                <div className="text-2xl font-bold text-foreground">{totalSuggestions}</div>
-                <p className="text-xs text-success">+{suggestions.filter(s => {
+                <div className="text-2xl font-bold text-foreground">{totalRequests}</div>
+                <p className="text-xs text-info">+{suggestions.filter(s => {
                   const weekAgo = new Date();
                   weekAgo.setDate(weekAgo.getDate() - 7);
                   return new Date(s.created_at) > weekAgo;
@@ -146,7 +125,7 @@ const RnD = () => {
             ) : (
               <>
                 <div className="text-2xl font-bold text-foreground">{inResearchCount}</div>
-                <p className="text-xs text-warning">Active projects</p>
+                <p className="text-xs text-warning">Being researched</p>
               </>
             )}
           </CardContent>
@@ -164,7 +143,7 @@ const RnD = () => {
             ) : (
               <>
                 <div className="text-2xl font-bold text-foreground">{sampleReadyCount}</div>
-                <p className="text-xs text-success">Ready for approval</p>
+                <p className="text-xs text-success">Ready for production</p>
               </>
             )}
           </CardContent>
@@ -182,18 +161,18 @@ const RnD = () => {
             ) : (
               <>
                 <div className="text-2xl font-bold text-foreground">{approvalPendingCount}</div>
-                <p className="text-xs text-info">Awaiting admin review</p>
+                <p className="text-xs text-info">Awaiting review</p>
               </>
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* Product Suggestions List */}
+      {/* Product Sample Requests List */}
       <Card className="shadow-enterprise">
         <CardHeader>
-          <CardTitle>Product Suggestions</CardTitle>
-          <CardDescription>Recent product suggestions and their current status</CardDescription>
+          <CardTitle>Sample Requests</CardTitle>
+          <CardDescription>Product suggestions from R&D team awaiting sample production</CardDescription>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -216,16 +195,12 @@ const RnD = () => {
               ))}
             </div>
           ) : suggestions.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground mb-4">No product suggestions yet</p>
-              <ProductSuggestionDialog 
-                trigger={
-                  <Button variant="outline">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create First Suggestion
-                  </Button>
-                }
-              />
+            <div className="text-center py-12">
+              <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">No Sample Requests</h3>
+              <p className="text-muted-foreground mb-6">
+                No product suggestions have been submitted yet
+              </p>
             </div>
           ) : (
             <div className="space-y-4">
@@ -250,7 +225,7 @@ const RnD = () => {
                       {getStatusIcon(suggestion.status)}
                       <div>
                         <h3 className="font-medium text-foreground">{suggestion.title}</h3>
-                        <p className="text-sm text-muted-foreground">ID: {suggestion.id.slice(0, 8)}...</p>
+                        <p className="text-sm text-muted-foreground">Submitted: {new Date(suggestion.created_at).toLocaleDateString()}</p>
                       </div>
                     </div>
                     
@@ -301,14 +276,15 @@ const RnD = () => {
                       )}
                     </div>
                     
-                    <ProductSuggestionDetailsDialog 
+                    <ProductSampleRequestDetailsDialog 
                       suggestion={suggestion}
                       trigger={
                         <Button variant="outline" size="sm">
                           <Eye className="h-4 w-4 mr-2" />
-                          View Details
+                          Manage Request
                         </Button>
                       }
+                      onSuccess={fetchSuggestions}
                     />
                   </div>
                 </div>
@@ -321,4 +297,4 @@ const RnD = () => {
   );
 };
 
-export default RnD;
+export default ProductSampleRequests;

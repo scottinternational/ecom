@@ -33,12 +33,7 @@ const menuItems = [
     icon: LayoutDashboard,
     badge: null
   },
-  {
-    title: "Products",
-    url: "/products",
-    icon: ShoppingBag,
-    badge: null
-  },
+  
   {
     title: "R&D",
     url: "/rnd",
@@ -46,10 +41,16 @@ const menuItems = [
     badge: "12"
   },
   {
-    title: "Production",
-    url: "/production",
+    title: "Procurement",
+    url: "/procurement",
     icon: Factory,
     badge: "8"
+  },
+  {
+    title: "Products",
+    url: "/products",
+    icon: ShoppingBag,
+    badge: null
   },
   {
     title: "Graphic & Content",
@@ -135,14 +136,12 @@ export function AppSidebar() {
           {!collapsed ? (
             <div className="flex items-center space-x-2">
               <div>
-  <img
-    src="https://i.postimg.cc/tgfBGrZZ/6732e31fc8403c1a709ad1e0-256-1.png"
-    alt="scott logo"
-    className="h-12 w-12"
-  />
-</div>
-              <break></break>
-              <break></break>
+                <img
+                  src="https://i.postimg.cc/tgfBGrZZ/6732e31fc8403c1a709ad1e0-256-1.png"
+                  alt="scott logo"
+                  className="h-12 w-12"
+                />
+              </div>
               <div>
                 <h2 className="text-lg font-bold text-foreground">Switzinc</h2>
                 <p className="text-xs text-muted-foreground">Scott International</p>

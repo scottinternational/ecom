@@ -4,8 +4,9 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Factory, Package, Clock, CheckCircle, Upload, Plus } from "lucide-react";
 import { useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const Production = () => {
+const PurchaseOrders = () => {
   const [purchaseOrders, setPurchaseOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -32,7 +33,7 @@ const Production = () => {
     <div className="flex-1 space-y-6 p-6 bg-background">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Production</h1>
+          <h1 className="text-3xl font-bold text-foreground">Purchase Orders</h1>
           <p className="text-muted-foreground mt-1">
             Track production status, manage samples, and coordinate with teams
           </p>
@@ -42,7 +43,10 @@ const Production = () => {
             <Upload className="h-4 w-4 mr-2" />
             Bulk Update
           </Button>
-          <Button variant="enterprise">Update Status</Button>
+          <Button variant="enterprise">
+            <Plus className="h-4 w-4 mr-2" />
+            Create PO
+          </Button>
         </div>
       </div>
 
@@ -55,14 +59,20 @@ const Production = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{activePOs}</div>
-            <p className="text-xs text-info">
-              {purchaseOrders.filter(po => {
-                const weekAgo = new Date();
-                weekAgo.setDate(weekAgo.getDate() - 7);
-                return new Date(po.created_at || po.dueDate) > weekAgo;
-              }).length} new this week
-            </p>
+            {loading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-foreground">{activePOs}</div>
+                <p className="text-xs text-info">
+                  {purchaseOrders.filter(po => {
+                    const weekAgo = new Date();
+                    weekAgo.setDate(weekAgo.getDate() - 7);
+                    return new Date(po.created_at || po.dueDate) > weekAgo;
+                  }).length} new this week
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -73,8 +83,14 @@ const Production = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{inProduction}</div>
-            <p className="text-xs text-warning">Currently manufacturing</p>
+            {loading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-foreground">{inProduction}</div>
+                <p className="text-xs text-warning">Currently manufacturing</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -85,8 +101,14 @@ const Production = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{sampleSetsReady}</div>
-            <p className="text-xs text-success">Ready for photoshoot</p>
+            {loading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-foreground">{sampleSetsReady}</div>
+                <p className="text-xs text-success">Ready for photoshoot</p>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -97,10 +119,16 @@ const Production = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">{avgProductionTime}</div>
-            <p className="text-xs text-success">
-              {purchaseOrders.length > 0 ? "-2d from last month" : "No data available"}
-            </p>
+            {loading ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <>
+                <div className="text-2xl font-bold text-foreground">{avgProductionTime}</div>
+                <p className="text-xs text-success">
+                  {purchaseOrders.length > 0 ? "-2d from last month" : "No data available"}
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -201,4 +229,4 @@ const Production = () => {
   );
 };
 
-export default Production;
+export default PurchaseOrders;
