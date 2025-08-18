@@ -346,12 +346,12 @@ export function ProductSuggestionDetailsDialog({ suggestion, trigger }: ProductS
             )}
 
             {/* Price Comparison Chart */}
-            {(suggestion.target_price || suggestion.proposed_selling_price || suggestion.cost_price) && (
+            {(suggestion.target_price || suggestion.cost_price) && (
               <Card>
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-4">
                     <DollarSign className="h-5 w-5" />
-                    <h3 className="font-medium">Price Analysis</h3>
+                    <h3 className="font-medium">Target vs Cost Price Comparison</h3>
                   </div>
                   
                   <div className="h-64 w-full">
@@ -363,12 +363,6 @@ export function ProductSuggestionDetailsDialog({ suggestion, trigger }: ProductS
                             value: suggestion.target_price || 0,
                             color: '#3b82f6',
                             label: 'R&D Target'
-                          },
-                          {
-                            name: 'Proposed Selling Price',
-                            value: suggestion.proposed_selling_price || 0,
-                            color: '#10b981',
-                            label: 'R&D Proposed'
                           },
                           {
                             name: 'Cost Price',
@@ -404,12 +398,6 @@ export function ProductSuggestionDetailsDialog({ suggestion, trigger }: ProductS
                               label: 'R&D Target'
                             },
                             {
-                              name: 'Proposed Selling Price',
-                              value: suggestion.proposed_selling_price || 0,
-                              color: '#10b981',
-                              label: 'R&D Proposed'
-                            },
-                            {
                               name: 'Cost Price',
                               value: suggestion.cost_price || 0,
                               color: '#f59e0b',
@@ -424,7 +412,7 @@ export function ProductSuggestionDetailsDialog({ suggestion, trigger }: ProductS
                   </div>
                   
                   {/* Price Summary */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                     {suggestion.target_price && (
                       <div className="text-center p-3 bg-blue-50 rounded-lg">
                         <div className="text-sm font-medium text-blue-700">Target Price</div>
@@ -433,9 +421,52 @@ export function ProductSuggestionDetailsDialog({ suggestion, trigger }: ProductS
                       </div>
                     )}
                     
+                    {suggestion.cost_price && (
+                      <div className="text-center p-3 bg-amber-50 rounded-lg">
+                        <div className="text-sm font-medium text-amber-700">Cost Price</div>
+                        <div className="text-lg font-bold text-amber-900">₹{suggestion.cost_price.toLocaleString()}</div>
+                        <div className="text-xs text-amber-600">Procurement Cost</div>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Target vs Cost Analysis */}
+                  {suggestion.target_price && suggestion.cost_price && (
+                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                      <h4 className="font-medium mb-2">Target vs Cost Analysis</h4>
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-muted-foreground">Price Difference:</span>
+                          <span className={`font-medium ml-2 ${suggestion.target_price >= suggestion.cost_price ? 'text-green-600' : 'text-red-600'}`}>
+                            ₹{(suggestion.target_price - suggestion.cost_price).toLocaleString()}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">Variance:</span>
+                          <span className={`font-medium ml-2 ${suggestion.target_price >= suggestion.cost_price ? 'text-green-600' : 'text-red-600'}`}>
+                            {((suggestion.target_price - suggestion.cost_price) / suggestion.target_price * 100).toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Profitability Analysis */}
+            {suggestion.cost_price && suggestion.proposed_selling_price && (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-2 mb-4">
+                    <DollarSign className="h-5 w-5" />
+                    <h3 className="font-medium">Profitability Analysis</h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                     {suggestion.proposed_selling_price && (
                       <div className="text-center p-3 bg-green-50 rounded-lg">
-                        <div className="text-sm font-medium text-green-700">Proposed Selling</div>
+                        <div className="text-sm font-medium text-green-700">Proposed Selling Price</div>
                         <div className="text-lg font-bold text-green-900">₹{suggestion.proposed_selling_price.toLocaleString()}</div>
                         <div className="text-xs text-green-600">R&D Proposed</div>
                       </div>
@@ -450,26 +481,24 @@ export function ProductSuggestionDetailsDialog({ suggestion, trigger }: ProductS
                     )}
                   </div>
                   
-                  {/* Profitability Analysis */}
-                  {suggestion.cost_price && suggestion.proposed_selling_price && (
-                    <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                      <h4 className="font-medium mb-2">Profitability Analysis</h4>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Gross Profit:</span>
-                          <span className="font-medium ml-2 text-green-600">
-                            ₹{(suggestion.proposed_selling_price - suggestion.cost_price).toLocaleString()}
-                          </span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Profit Margin:</span>
-                          <span className="font-medium ml-2 text-green-600">
-                            {((suggestion.proposed_selling_price - suggestion.cost_price) / suggestion.proposed_selling_price * 100).toFixed(1)}%
-                          </span>
-                        </div>
+                  {/* Margin Analysis */}
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <h4 className="font-medium mb-2">Margin Analysis</h4>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-muted-foreground">Gross Profit:</span>
+                        <span className="font-medium ml-2 text-green-600">
+                          ₹{(suggestion.proposed_selling_price - suggestion.cost_price).toLocaleString()}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Profit Margin:</span>
+                        <span className="font-medium ml-2 text-green-600">
+                          {((suggestion.proposed_selling_price - suggestion.cost_price) / suggestion.proposed_selling_price * 100).toFixed(1)}%
+                        </span>
                       </div>
                     </div>
-                  )}
+                  </div>
                 </CardContent>
               </Card>
             )}

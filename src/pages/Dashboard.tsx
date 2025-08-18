@@ -18,6 +18,7 @@ import {
   Filter
 } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
+import MCPTest from "@/components/MCPTest";
 
 const Dashboard = () => {
   const [dateFilter, setDateFilter] = useState("30d");
@@ -434,6 +435,9 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* MCP Integration Test */}
+      <MCPTest />
     </div>
   );
 };
