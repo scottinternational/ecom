@@ -18,65 +18,54 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
-import { Plus, Upload, X } from "lucide-react";
+import { Plus, Upload, X, Image as ImageIcon } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
+import { useProducts, CreateProductData } from "@/hooks/useProducts";
+import { useBrands } from "@/hooks/useBrands";
 
 interface ProductFormData {
-  channel_sku: string;
-  channel_names: string[];
   sku: string;
-  class: string;
+  brand_id: number | null;
+  product_name: string;
+  description: string;
+  cost_price: string;
+  selling_price: string;
   color: string;
   size: string;
-  product_name: string;
-  product_category: string;
-  listing_url: string;
-  product_image: File | null;
+  category: string;
+  image_url: string;
+  imageFile: File | null;
 }
-
-const CHANNEL_OPTIONS = [
-  "Amazon",
-  "Flipkart", 
-  "Myntra",
-  "Ajio",
-  "Jiomart",
-  "Meesho"
-];
 
 export function ProductCreateDialog() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageInputType, setImageInputType] = useState<'file' | 'url'>('file');
+  
   const { addNotification } = useNotifications();
+  const { createProduct } = useProducts();
+  const { brands } = useBrands();
 
   const [formData, setFormData] = useState<ProductFormData>({
-    channel_sku: "",
-    channel_names: [],
     sku: "",
-    class: "",
+    brand_id: null,
+    product_name: "",
+    description: "",
+    cost_price: "",
+    selling_price: "",
     color: "",
     size: "",
-    product_name: "",
-    product_category: "",
-    listing_url: "",
-    product_image: null,
+    category: "",
+    image_url: "",
+    imageFile: null,
   });
-
-  const handleChannelChange = (channel: string, checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      channel_names: checked 
-        ? [...prev.channel_names, channel]
-        : prev.channel_names.filter(c => c !== channel)
-    }));
-  };
 
   const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setFormData(prev => ({ ...prev, product_image: file }));
+      setFormData(prev => ({ ...prev, imageFile: file, image_url: "" }));
       
       // Create preview
       const reader = new FileReader();
@@ -87,8 +76,13 @@ export function ProductCreateDialog() {
     }
   };
 
+  const handleImageUrlChange = (url: string) => {
+    setFormData(prev => ({ ...prev, image_url: url, imageFile: null }));
+    setImagePreview(url);
+  };
+
   const removeImage = () => {
-    setFormData(prev => ({ ...prev, product_image: null }));
+    setFormData(prev => ({ ...prev, imageFile: null, image_url: "" }));
     setImagePreview(null);
   };
 
@@ -97,8 +91,20 @@ export function ProductCreateDialog() {
     setLoading(true);
 
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const productData: CreateProductData = {
+        sku: formData.sku,
+        brand_id: formData.brand_id,
+        product_name: formData.product_name,
+        description: formData.description || undefined,
+        cost_price: formData.cost_price ? parseFloat(formData.cost_price) : undefined,
+        selling_price: formData.selling_price ? parseFloat(formData.selling_price) : undefined,
+        color: formData.color || undefined,
+        size: formData.size || undefined,
+        category: formData.category || undefined,
+        image_url: formData.image_url || undefined,
+      };
+
+      await createProduct(productData, formData.imageFile || undefined);
       
       addNotification({
         title: "Product Created Successfully",
@@ -108,23 +114,25 @@ export function ProductCreateDialog() {
 
       // Reset form
       setFormData({
-        channel_sku: "",
-        channel_names: [],
         sku: "",
-        class: "",
+        brand_id: null,
+        product_name: "",
+        description: "",
+        cost_price: "",
+        selling_price: "",
         color: "",
         size: "",
-        product_name: "",
-        product_category: "",
-        listing_url: "",
-        product_image: null,
+        category: "",
+        image_url: "",
+        imageFile: null,
       });
       setImagePreview(null);
+      setImageInputType('file');
       setOpen(false);
     } catch (error) {
       addNotification({
         title: "Error Creating Product",
-        message: "Failed to create product. Please try again.",
+        message: error instanceof Error ? error.message : "Failed to create product. Please try again.",
         type: "error",
       });
     } finally {
@@ -150,28 +158,36 @@ export function ProductCreateDialog() {
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Channel SKU */}
-            <div className="space-y-2">
-              <Label htmlFor="channel_sku">Channel SKU *</Label>
-              <Input
-                id="channel_sku"
-                value={formData.channel_sku}
-                onChange={(e) => setFormData(prev => ({ ...prev, channel_sku: e.target.value }))}
-                placeholder="Enter channel SKU"
-                required
-              />
-            </div>
-
             {/* SKU */}
             <div className="space-y-2">
-              <Label htmlFor="sku">Master SKU *</Label>
+              <Label htmlFor="sku">SKU *</Label>
               <Input
                 id="sku"
                 value={formData.sku}
                 onChange={(e) => setFormData(prev => ({ ...prev, sku: e.target.value }))}
-                placeholder="Enter master SKU"
+                placeholder="Enter SKU"
                 required
               />
+            </div>
+
+            {/* Brand */}
+            <div className="space-y-2">
+              <Label htmlFor="brand">Brand</Label>
+              <Select
+                value={formData.brand_id?.toString() || ""}
+                onValueChange={(value) => setFormData(prev => ({ ...prev, brand_id: value ? parseInt(value) : null }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a brand" />
+                </SelectTrigger>
+                <SelectContent>
+                  {brands.map((brand) => (
+                    <SelectItem key={brand.id} value={brand.id.toString()}>
+                      {brand.brand}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Product Name */}
@@ -186,14 +202,41 @@ export function ProductCreateDialog() {
               />
             </div>
 
-            {/* Class */}
+            {/* Description */}
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Enter product description"
+                rows={3}
+              />
+            </div>
+
+            {/* Cost Price */}
             <div className="space-y-2">
-              <Label htmlFor="class">Class</Label>
+              <Label htmlFor="cost_price">Cost Price</Label>
               <Input
-                id="class"
-                value={formData.class}
-                onChange={(e) => setFormData(prev => ({ ...prev, class: e.target.value }))}
-                placeholder="Enter product class"
+                id="cost_price"
+                type="number"
+                step="0.01"
+                value={formData.cost_price}
+                onChange={(e) => setFormData(prev => ({ ...prev, cost_price: e.target.value }))}
+                placeholder="0.00"
+              />
+            </div>
+
+            {/* Selling Price */}
+            <div className="space-y-2">
+              <Label htmlFor="selling_price">Selling Price</Label>
+              <Input
+                id="selling_price"
+                type="number"
+                step="0.01"
+                value={formData.selling_price}
+                onChange={(e) => setFormData(prev => ({ ...prev, selling_price: e.target.value }))}
+                placeholder="0.00"
               />
             </div>
 
@@ -219,52 +262,55 @@ export function ProductCreateDialog() {
               />
             </div>
 
-            {/* Product Category */}
-            <div className="space-y-2">
-              <Label htmlFor="product_category">Product Category</Label>
+            {/* Category */}
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="category">Category</Label>
               <Input
-                id="product_category"
-                value={formData.product_category}
-                onChange={(e) => setFormData(prev => ({ ...prev, product_category: e.target.value }))}
+                id="category"
+                value={formData.category}
+                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
                 placeholder="Enter category"
               />
-            </div>
-
-            {/* Listing URL */}
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="listing_url">Listing URL</Label>
-              <Input
-                id="listing_url"
-                type="url"
-                value={formData.listing_url}
-                onChange={(e) => setFormData(prev => ({ ...prev, listing_url: e.target.value }))}
-                placeholder="https://example.com/product"
-              />
-            </div>
-          </div>
-
-          {/* Channel Names */}
-          <div className="space-y-3">
-            <Label>Channel Names</Label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {CHANNEL_OPTIONS.map((channel) => (
-                <div key={channel} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={channel}
-                    checked={formData.channel_names.includes(channel)}
-                    onCheckedChange={(checked) => handleChannelChange(channel, checked as boolean)}
-                  />
-                  <Label htmlFor={channel} className="text-sm font-normal">
-                    {channel}
-                  </Label>
-                </div>
-              ))}
             </div>
           </div>
 
           {/* Product Image */}
           <div className="space-y-3">
-            <Label htmlFor="product_image">Product Image</Label>
+            <Label>Product Image</Label>
+            
+            {/* Image Input Type Toggle */}
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant={imageInputType === 'file' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setImageInputType('file')}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Upload File
+              </Button>
+              <Button
+                type="button"
+                variant={imageInputType === 'url' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setImageInputType('url')}
+              >
+                <ImageIcon className="h-4 w-4 mr-2" />
+                Image URL
+              </Button>
+            </div>
+
+            {imageInputType === 'url' ? (
+              <div className="space-y-2">
+                <Input
+                  type="url"
+                  placeholder="https://example.com/image.jpg"
+                  value={formData.image_url}
+                  onChange={(e) => handleImageUrlChange(e.target.value)}
+                />
+              </div>
+            ) : null}
+
             {imagePreview ? (
               <Card className="relative">
                 <CardContent className="p-4">
