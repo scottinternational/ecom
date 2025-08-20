@@ -21,6 +21,11 @@ import Operations from "./pages/Operations";
 import Users from "./pages/Users";
 import People from "./pages/People";
 import Products from "./pages/Products";
+import ProductMaster from "./pages/ProductMaster";
+import ProductDetails from "./pages/ProductDetails";
+import Listing from "./pages/Listing";
+import Mapping from "./pages/Mapping";
+import Brands from "./pages/Brands";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
@@ -110,6 +115,31 @@ const App = () => (
             <Route path="/products" element={
               <ProtectedRoute>
                 <Layout><Products /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/products/master" element={
+              <ProtectedRoute>
+                <Layout><ProductMaster /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/products/master/:id" element={
+              <ProtectedRoute>
+                <Layout><ProductDetails /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/products/listing" element={
+              <ProtectedRoute>
+                <Layout><Listing /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/products/mapping" element={
+              <ProtectedRoute>
+                <Layout><Mapping /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/products/brands" element={
+              <ProtectedRoute>
+                <Layout><Brands /></Layout>
               </ProtectedRoute>
             } />
             <Route path="/settings" element={
