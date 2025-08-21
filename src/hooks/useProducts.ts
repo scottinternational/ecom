@@ -390,7 +390,10 @@ export const useProducts = () => {
 
       console.log('Searching products with term:', searchTerm);
 
-      // Simple and reliable search approach
+      // Enhanced comprehensive search across all fields
+      const searchTermLower = searchTerm.toLowerCase().trim();
+      
+      // First, try database-level search for better performance
       const { data, error: searchError } = await supabase
         .from('products')
         .select(`
@@ -401,20 +404,23 @@ export const useProducts = () => {
         .order('created_at', { ascending: false });
 
       if (searchError) {
-        console.error('Error in search:', searchError);
-        // Fallback to client-side search
-        const searchTermLower = searchTerm.toLowerCase().trim();
+        console.error('Database search error:', searchError);
+        // Fallback to comprehensive client-side search
         const filtered = products.filter(product => {
-          return (
-            product.sku.toLowerCase().includes(searchTermLower) ||
-            product.product_name.toLowerCase().includes(searchTermLower) ||
-            (product.description && product.description.toLowerCase().includes(searchTermLower)) ||
-            (product.color && product.color.toLowerCase().includes(searchTermLower)) ||
-            (product.size && product.size.toLowerCase().includes(searchTermLower)) ||
-            (product.category && product.category.toLowerCase().includes(searchTermLower)) ||
-            (product.brand && product.brand.brand.toLowerCase().includes(searchTermLower)) ||
-            (product.cost_price && product.cost_price.toString().includes(searchTerm)) ||
-            (product.selling_price && product.selling_price.toString().includes(searchTerm))
+          const searchableFields = [
+            product.sku,
+            product.product_name,
+            product.description,
+            product.color,
+            product.size,
+            product.category,
+            product.brand?.brand,
+            product.cost_price?.toString(),
+            product.selling_price?.toString()
+          ].filter(Boolean);
+
+          return searchableFields.some(field => 
+            field?.toLowerCase().includes(searchTermLower)
           );
         });
 
@@ -431,7 +437,7 @@ export const useProducts = () => {
         return;
       }
 
-      // Also search for brand names
+      // Also search for brand names specifically
       const { data: brandData, error: brandError } = await supabase
         .from('products')
         .select(`
@@ -444,7 +450,7 @@ export const useProducts = () => {
       let brandFilteredData: any[] = [];
       if (!brandError && brandData) {
         brandFilteredData = brandData.filter(product => 
-          product.brand?.brand.toLowerCase().includes(searchTerm.toLowerCase())
+          product.brand?.brand.toLowerCase().includes(searchTermLower)
         );
       }
 
@@ -454,15 +460,34 @@ export const useProducts = () => {
         index === self.findIndex(p => p.id === product.id)
       );
 
-      console.log('Search results:', { 
-        count: uniqueResults.length, 
+      // Additional client-side filtering for comprehensive search
+      const comprehensiveResults = uniqueResults.filter(product => {
+        const searchableFields = [
+          product.sku,
+          product.product_name,
+          product.description,
+          product.color,
+          product.size,
+          product.category,
+          product.brand?.brand,
+          product.cost_price?.toString(),
+          product.selling_price?.toString()
+        ].filter(Boolean);
+
+        return searchableFields.some(field => 
+          field?.toLowerCase().includes(searchTermLower)
+        );
+      });
+
+      console.log('Comprehensive search results:', { 
+        count: comprehensiveResults.length, 
         searchTerm,
-        results: uniqueResults.slice(0, 3),
+        results: comprehensiveResults.slice(0, 3),
         searchTermUsed: searchTerm
       });
 
-      setProducts(uniqueResults);
-      setTotalCount(uniqueResults.length);
+      setProducts(comprehensiveResults);
+      setTotalCount(comprehensiveResults.length);
       setCurrentPage(1);
       setHasMore(false); // Disable pagination for search results
 
@@ -471,6 +496,64 @@ export const useProducts = () => {
       setError('Failed to search products');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Function to search across all products in database (comprehensive search)
+  const searchAllProducts = async (searchTerm: string): Promise<Product[]> => {
+    try {
+      console.log('Searching all products in database with term:', searchTerm);
+      
+      if (!searchTerm.trim()) {
+        return [];
+      }
+
+      const searchTermLower = searchTerm.toLowerCase().trim();
+      
+      // Search across all products in database
+      const { data, error } = await supabase
+        .from('products')
+        .select(`
+          *,
+          brand:brands(id, brand, logo, created_at)
+        `)
+        .or(`sku.ilike.%${searchTerm}%,product_name.ilike.%${searchTerm}%,description.ilike.%${searchTerm}%,color.ilike.%${searchTerm}%,size.ilike.%${searchTerm}%,category.ilike.%${searchTerm}%`)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error searching all products:', error);
+        return [];
+      }
+
+      // Additional client-side filtering for comprehensive search
+      const comprehensiveResults = (data || []).filter(product => {
+        const searchableFields = [
+          product.sku,
+          product.product_name,
+          product.description,
+          product.color,
+          product.size,
+          product.category,
+          product.brand?.brand,
+          product.cost_price?.toString(),
+          product.selling_price?.toString()
+        ].filter(Boolean);
+
+        return searchableFields.some(field => 
+          field?.toLowerCase().includes(searchTermLower)
+        );
+      });
+
+      console.log('Database-wide search results:', { 
+        count: comprehensiveResults.length, 
+        searchTerm,
+        results: comprehensiveResults.slice(0, 3)
+      });
+
+      return comprehensiveResults;
+    } catch (err) {
+      console.error('Error in searchAllProducts:', err);
+      return [];
     }
   };
 
@@ -570,6 +653,7 @@ export const useProducts = () => {
     bulkDeleteProducts,
     uploadProductImage,
     searchProducts,
+    searchAllProducts,
     fetchAllProductsForExport,
     fetchProductById,
   };

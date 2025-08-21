@@ -26,6 +26,7 @@ import ProductDetails from "./pages/ProductDetails";
 import Listing from "./pages/Listing";
 import Mapping from "./pages/Mapping";
 import Brands from "./pages/Brands";
+import Marketplaces from "./pages/Marketplaces";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Auth from "./pages/Auth";
@@ -140,6 +141,11 @@ const App = () => (
             <Route path="/products/brands" element={
               <ProtectedRoute>
                 <Layout><Brands /></Layout>
+              </ProtectedRoute>
+            } />
+            <Route path="/marketplaces" element={
+              <ProtectedRoute>
+                <Layout><Marketplaces /></Layout>
               </ProtectedRoute>
             } />
             <Route path="/settings" element={

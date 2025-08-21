@@ -19,11 +19,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { X, Filter, RotateCcw } from "lucide-react";
+import { X, Filter, RotateCcw, Search } from "lucide-react";
 import { useBrands } from "@/hooks/useBrands";
 import { Product } from "@/hooks/useProducts";
 
 export interface FilterOptions {
+  searchQuery: string;
   brands: string[];
   categories: string[];
   colors: string[];
@@ -64,6 +65,13 @@ export const ProductFilterDialog: React.FC<ProductFilterDialogProps> = ({
     setFilters(prev => ({
       ...prev,
       [key]: value
+    }));
+  };
+
+  const handleSearchChange = (searchQuery: string) => {
+    setFilters(prev => ({
+      ...prev,
+      searchQuery
     }));
   };
 
@@ -110,6 +118,7 @@ export const ProductFilterDialog: React.FC<ProductFilterDialogProps> = ({
 
   const handleClearFilters = () => {
     const clearedFilters: FilterOptions = {
+      searchQuery: '',
       brands: [],
       categories: [],
       colors: [],
@@ -124,6 +133,7 @@ export const ProductFilterDialog: React.FC<ProductFilterDialogProps> = ({
 
   const getActiveFilterCount = () => {
     let count = 0;
+    if (filters.searchQuery.trim()) count++;
     if (filters.brands.length > 0) count++;
     if (filters.categories.length > 0) count++;
     if (filters.colors.length > 0) count++;
@@ -150,6 +160,23 @@ export const ProductFilterDialog: React.FC<ProductFilterDialogProps> = ({
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Global Search */}
+          <div className="space-y-3">
+            <Label className="text-sm font-medium">Search All Fields</Label>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by SKU, name, brand, color, size, category, description, pricing..."
+                value={filters.searchQuery}
+                onChange={(e) => handleSearchChange(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Search across all product data including SKU, product name, brand, color, size, category, description, and pricing information.
+            </p>
+          </div>
+
           {/* Brands Filter */}
           <div className="space-y-3">
             <Label className="text-sm font-medium">Brands</Label>
