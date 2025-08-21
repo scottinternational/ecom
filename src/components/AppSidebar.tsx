@@ -32,7 +32,8 @@ import {
   Database,
   Globe,
   Link,
-  Building2
+  Building2,
+  Store
 } from "lucide-react";
 
 const menuItems = [
@@ -86,6 +87,12 @@ const menuItems = [
         badge: null
       }
     ]
+  },
+  {
+    title: "Marketplaces",
+    url: "/marketplaces",
+    icon: Store,
+    badge: null
   },
   {
     title: "Graphic & Content",

@@ -15,15 +15,19 @@ import {
   Eye,
   ShoppingCart,
   Star,
-  Filter
+  Filter,
+  Store,
+  Database
 } from "lucide-react";
 import { useNotifications } from "@/hooks/useNotifications";
 import MCPTest from "@/components/MCPTest";
+import { useMarketplaces } from "@/hooks/useMarketplaces";
 
 const Dashboard = () => {
   const [dateFilter, setDateFilter] = useState("30d");
   const [marketplaceFilter, setMarketplaceFilter] = useState("all");
   const { addNotification } = useNotifications();
+  const { marketplaces, integrations } = useMarketplaces();
 
   // Sample KPI Data
   const kpis = [
@@ -215,6 +219,80 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      {/* Marketplace Status */}
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <Card className="shadow-sm">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center gap-2">
+                <Store className="h-5 w-5 text-primary" />
+                Marketplace Integrations
+                <Badge variant="secondary" className="ml-2">
+                  {integrations.filter(i => i.status === 'connected').length} connected
+                </Badge>
+              </CardTitle>
+              <CardDescription>
+                Manage your marketplace connections and sync status
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {marketplaces.slice(0, 3).map((marketplace) => {
+                  const integration = integrations.find(i => i.marketplace_id === marketplace.id);
+                  return (
+                    <div key={marketplace.id} className="flex items-center justify-between">
+                      <span className="text-sm">{marketplace.display_name}</span>
+                      <Badge variant={integration?.status === 'connected' ? 'default' : 'secondary'}>
+                        {integration?.status === 'connected' ? 'Connected' : 'Not Configured'}
+                      </Badge>
+                    </div>
+                  );
+                })}
+                {marketplaces.length > 3 && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      +{marketplaces.length - 3} more marketplaces
+                    </span>
+                  </div>
+                )}
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full mt-4"
+                onClick={() => window.location.href = '/marketplaces'}
+              >
+                Manage Marketplaces
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+        <div>
+          <Card className="shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Database className="h-5 w-5 text-primary" />
+                Quick Actions
+              </CardTitle>
+              <CardDescription>
+                Test connections and sync data
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <Button variant="outline" size="sm" className="w-full">
+                Test All Connections
+              </Button>
+              <Button variant="outline" size="sm" className="w-full">
+                Sync All Data
+              </Button>
+              <Button variant="outline" size="sm" className="w-full">
+                View Sync Logs
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Charts Section */}
@@ -438,6 +516,8 @@ const Dashboard = () => {
 
       {/* MCP Integration Test */}
       <MCPTest />
+
+
     </div>
   );
 };

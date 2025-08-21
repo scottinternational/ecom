@@ -8,6 +8,7 @@ import { Filter, ExternalLink, Loader2, GripVertical, Search, X, Download, Chevr
 import { ProductBulkUploadDialog } from "@/components/ProductBulkUploadDialog";
 import { ProductCreateDialog } from "@/components/ProductCreateDialog";
 import { ProductFilterDialog, FilterOptions } from "@/components/ProductFilterDialog";
+import { ComprehensiveSearchDialog } from "@/components/ComprehensiveSearchDialog";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useProducts, Product } from "@/hooks/useProducts";
 import { useEffect, useRef, useCallback, useState } from 'react';
@@ -24,7 +25,7 @@ import {
 
 const ProductMaster = () => {
   const { addNotification } = useNotifications();
-  const { products, loading, error, hasMore, totalCount, fetchProducts, loadMoreProducts, searchProducts, fetchAllProductsForExport, deleteProduct, bulkDeleteProducts } = useProducts();
+  const { products, loading, error, hasMore, totalCount, fetchProducts, loadMoreProducts, searchProducts, searchAllProducts, fetchAllProductsForExport, deleteProduct, bulkDeleteProducts } = useProducts();
   const observerRef = useRef<IntersectionObserver | null>(null);
   const navigate = useNavigate();
 
@@ -52,7 +53,9 @@ const ProductMaster = () => {
   const [imagePreviewOpen, setImagePreviewOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState<{ url: string; alt: string } | null>(null);
   const [filterDialogOpen, setFilterDialogOpen] = useState(false);
+  const [comprehensiveSearchDialogOpen, setComprehensiveSearchDialogOpen] = useState(false);
   const [activeFilters, setActiveFilters] = useState<FilterOptions>({
+    searchQuery: '',
     brands: [],
     categories: [],
     colors: [],
@@ -513,8 +516,47 @@ const ProductMaster = () => {
     setFilterDialogOpen(true);
   };
 
-  const handleApplyFilters = (filters: FilterOptions) => {
+  const handleComprehensiveSearchResults = async (results: Product[], searchQuery: string) => {
+    // Update the main search query to reflect the comprehensive search
+    setSearchQuery(searchQuery);
+    console.log('Comprehensive search completed with', results.length, 'results for query:', searchQuery);
+  };
+
+  const handleApplyFilters = async (filters: FilterOptions) => {
     setActiveFilters(filters);
+    
+    // If there's a search query in filters, perform comprehensive search
+    if (filters.searchQuery.trim()) {
+      setSearchQuery(filters.searchQuery);
+      
+      try {
+        // Use comprehensive search across all database
+        const searchResults = await searchAllProducts(filters.searchQuery);
+        
+        // Update the products state with search results
+        // Note: This will override the current products with search results
+        // The searchProducts function will handle the state management
+        await searchProducts(filters.searchQuery);
+        
+        addNotification({
+          title: "Search Complete",
+          message: `Found ${searchResults.length} products matching "${filters.searchQuery}"`,
+          type: "success",
+        });
+      } catch (error) {
+        console.error('Search error:', error);
+        addNotification({
+          title: "Search Error",
+          message: "Failed to perform comprehensive search",
+          type: "error",
+        });
+      }
+    } else if (searchQuery.trim()) {
+      // If filters don't have search but main search does, clear it
+      setSearchQuery('');
+      searchProducts('');
+    }
+    
     addNotification({
       title: "Filters Applied",
       message: `Applied ${getActiveFilterCount(filters)} filter(s)`,
@@ -524,6 +566,7 @@ const ProductMaster = () => {
 
   const getActiveFilterCount = (filters: FilterOptions) => {
     let count = 0;
+    if (filters.searchQuery.trim()) count++;
     if (filters.brands.length > 0) count++;
     if (filters.categories.length > 0) count++;
     if (filters.colors.length > 0) count++;
@@ -536,6 +579,30 @@ const ProductMaster = () => {
 
   // Apply filters to products
   const filteredProducts = products.filter(product => {
+    // Search filter - search across all fields
+    if (activeFilters.searchQuery.trim()) {
+      const searchTerm = activeFilters.searchQuery.toLowerCase().trim();
+      const searchableFields = [
+        product.sku,
+        product.product_name,
+        product.description,
+        product.color,
+        product.size,
+        product.category,
+        product.brand?.brand,
+        product.cost_price?.toString(),
+        product.selling_price?.toString()
+      ].filter(Boolean);
+
+      const matchesSearch = searchableFields.some(field => 
+        field?.toLowerCase().includes(searchTerm)
+      );
+
+      if (!matchesSearch) {
+        return false;
+      }
+    }
+
     // Brand filter
     if (activeFilters.brands.length > 0 && !activeFilters.brands.includes(product.brand_id?.toString() || '')) {
       return false;
@@ -641,7 +708,7 @@ const ProductMaster = () => {
               <Search className="h-5 w-5 text-muted-foreground group-focus-within:text-primary transition-colors duration-200" />
             </div>
             <Input
-              placeholder="Search products by SKU, name, brand, color, size, category..."
+              placeholder="Search across all product data: SKU, name, brand, color, size, category, description, pricing..."
               value={searchQuery}
               onChange={(e) => handleSearch(e.target.value)}
               className="pl-10 pr-12 h-11 bg-background border-2 border-border focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 rounded-xl shadow-sm hover:shadow-md focus:shadow-lg"
@@ -672,13 +739,28 @@ const ProductMaster = () => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => {
-                    console.log('Manual search test for:', searchQuery);
-                    searchProducts(searchQuery);
+                  onClick={async () => {
+                    console.log('Comprehensive search for:', searchQuery);
+                    try {
+                      const searchResults = await searchAllProducts(searchQuery);
+                      addNotification({
+                        title: "Comprehensive Search Complete",
+                        message: `Found ${searchResults.length} products across entire database`,
+                        type: "success",
+                      });
+                      // Update the search results
+                      await searchProducts(searchQuery);
+                    } catch (error) {
+                      addNotification({
+                        title: "Search Error",
+                        message: "Failed to perform comprehensive search",
+                        type: "error",
+                      });
+                    }
                   }}
                   className="text-xs h-6 px-2"
                 >
-                  Test Search
+                  Search All Data
                 </Button>
               </div>
             </div>
@@ -686,6 +768,13 @@ const ProductMaster = () => {
         </div>
         
                  <div className="flex gap-2">
+           <Button 
+             variant="outline"
+             onClick={() => setComprehensiveSearchDialogOpen(true)}
+           >
+             <Search className="h-4 w-4 mr-2" />
+             Search All Data
+           </Button>
            <Button 
              variant="outline"
              onClick={handleFilterClick}
@@ -1229,6 +1318,13 @@ const ProductMaster = () => {
          products={products}
          onApplyFilters={handleApplyFilters}
          currentFilters={activeFilters}
+       />
+
+       {/* Comprehensive Search Dialog */}
+       <ComprehensiveSearchDialog
+         open={comprehensiveSearchDialogOpen}
+         onOpenChange={setComprehensiveSearchDialogOpen}
+         onSearchResults={handleComprehensiveSearchResults}
        />
 
        {/* Image Preview Modal */}
