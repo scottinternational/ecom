@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,6 +60,7 @@ interface ProductWithImage {
 }
 
 const Mapping = () => {
+  const navigate = useNavigate();
   const { addNotification } = useNotifications();
   const { 
     mappings, 
@@ -395,6 +397,11 @@ const Mapping = () => {
         type: "error",
       });
     }
+  };
+
+  // Handle row click to navigate to detail page
+  const handleRowClick = (mapping: ChannelSkuMapping) => {
+    navigate(`/products/mapping/${mapping.id}`);
   };
 
   // Handle export
@@ -746,7 +753,11 @@ const Mapping = () => {
                 </TableHeader>
                 <TableBody>
                   {mappings.map((mapping) => (
-                    <TableRow key={mapping.id}>
+                    <TableRow 
+                      key={mapping.id}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => handleRowClick(mapping)}
+                    >
                       <TableCell>
                         <div className="text-sm font-mono text-foreground">
                           {mapping.channel_sku}
@@ -770,55 +781,59 @@ const Mapping = () => {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-4">
-                          {/* Product Image */}
-                          <div className="relative">
-                            <div className="w-16 h-16 rounded-lg border overflow-hidden bg-gray-100">
-                              {getProductImage(mapping.master_sku) ? (
-                                <img 
-                                  src={getProductImage(mapping.master_sku)} 
-                                  alt="Product" 
-                                  className="w-full h-full object-cover"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                    e.currentTarget.nextElementSibling?.classList.remove('hidden');
-                                  }}
-                                />
-                              ) : null}
-                              <div className={`w-full h-full flex items-center justify-center text-sm text-gray-500 ${getProductImage(mapping.master_sku) ? 'hidden' : ''}`}>
-                                {mapping.master_sku.charAt(0)}
-                              </div>
-                            </div>
-                          </div>
-                          
-                          {/* Master SKU */}
-                          <div className="flex flex-col">
-                            <div className="text-sm font-mono text-foreground">
-                              {mapping.master_sku}
-                            </div>
-                            <span className="text-xs text-muted-foreground mt-1">
-                              {productImages.get(mapping.master_sku)?.name || 'Product'}
-                            </span>
-                          </div>
+                                             <TableCell>
+                         <div className="flex items-center space-x-4">
+                           {/* Product Image */}
+                           <div className="relative">
+                             <div className="w-16 h-16 rounded-lg border overflow-hidden bg-gray-100">
+                               {getProductImage(mapping.master_sku) ? (
+                                 <img 
+                                   src={getProductImage(mapping.master_sku)} 
+                                   alt="Product" 
+                                   className="w-full h-full object-cover"
+                                   onError={(e) => {
+                                     e.currentTarget.style.display = 'none';
+                                     e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                   }}
+                                 />
+                               ) : null}
+                               <div className={`w-full h-full flex items-center justify-center text-sm text-gray-500 ${getProductImage(mapping.master_sku) ? 'hidden' : ''}`}>
+                                 {mapping.master_sku.charAt(0)}
+                               </div>
+                             </div>
+                           </div>
+                           
+                           {/* Master SKU */}
+                           <div className="flex flex-col flex-1">
+                             <div className="text-sm font-mono text-foreground">
+                               {mapping.master_sku}
+                             </div>
+                             <span className="text-xs text-muted-foreground mt-1">
+                               {productImages.get(mapping.master_sku)?.name || 'Product'}
+                             </span>
+                           </div>
 
-                          {/* Brand Logo */}
-                          {getBrandLogo(mapping.master_sku) && (
-                            <div className="relative">
-                              <div className="w-16 h-16 rounded-lg border overflow-hidden bg-white">
-                                <img 
-                                  src={getBrandLogo(mapping.master_sku)} 
-                                  alt="Brand" 
-                                  className="w-full h-full object-contain"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                  }}
-                                />
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
+                           {/* Brand Logo - Always show container for consistent alignment */}
+                           <div className="relative flex-shrink-0">
+                             <div className="w-16 h-16 rounded-lg border overflow-hidden bg-white">
+                               {getBrandLogo(mapping.master_sku) ? (
+                                 <img 
+                                   src={getBrandLogo(mapping.master_sku)} 
+                                   alt="Brand" 
+                                   className="w-full h-full object-contain"
+                                   onError={(e) => {
+                                     e.currentTarget.style.display = 'none';
+                                     e.currentTarget.nextElementSibling?.classList.remove('hidden');
+                                   }}
+                                 />
+                               ) : null}
+                               <div className={`w-full h-full flex items-center justify-center text-xs text-gray-400 ${getBrandLogo(mapping.master_sku) ? 'hidden' : ''}`}>
+                                 Brand
+                               </div>
+                             </div>
+                           </div>
+                         </div>
+                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-1">
                           <CheckCircle className="h-3 w-3 text-yellow-500" />
@@ -833,7 +848,7 @@ const Mapping = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center space-x-2">
+                        <div className="flex items-center space-x-2" onClick={(e) => e.stopPropagation()}>
                           <Button
                             variant="ghost"
                             size="sm"

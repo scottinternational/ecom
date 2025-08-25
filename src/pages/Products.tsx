@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import { Filter, ExternalLink } from "lucide-react";
 import { ProductBulkUploadDialog } from "@/components/ProductBulkUploadDialog";
@@ -222,10 +222,24 @@ const Products = () => {
                         {product.brand ? (
                           <div className="flex items-center space-x-2">
                             {product.brand.logo && (
-                              <Avatar className="h-6 w-6">
-                                <AvatarImage src={product.brand.logo} alt={product.brand.brand} />
-                                <AvatarFallback className="text-xs">{product.brand.brand.charAt(0)}</AvatarFallback>
-                              </Avatar>
+                              <div className="h-6 w-6 rounded-full overflow-hidden border border-border bg-muted flex-shrink-0">
+                                <img 
+                                  src={product.brand.logo} 
+                                  alt={product.brand.brand}
+                                  className="h-full w-full object-cover"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.display = 'none';
+                                    const fallback = target.parentElement?.querySelector('.brand-fallback');
+                                    if (fallback) {
+                                      fallback.classList.remove('hidden');
+                                    }
+                                  }}
+                                />
+                                <div className="h-full w-full flex items-center justify-center text-xs font-medium text-muted-foreground brand-fallback hidden">
+                                  {product.brand.brand.charAt(0)}
+                                </div>
+                              </div>
                             )}
                             <span className="text-sm font-medium">{product.brand.brand}</span>
                           </div>
@@ -235,13 +249,26 @@ const Products = () => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-3">
-                          <Avatar className="h-8 w-8">
+                          <div className="h-8 w-8 rounded-full overflow-hidden border border-border bg-muted flex-shrink-0">
                             {product.image_url ? (
-                              <AvatarImage src={product.image_url} alt={product.product_name} />
-                            ) : (
-                              <AvatarFallback>{product.product_name.charAt(0)}</AvatarFallback>
-                            )}
-                          </Avatar>
+                              <img 
+                                src={product.image_url} 
+                                alt={product.product_name}
+                                className="h-full w-full object-cover"
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  const fallback = target.parentElement?.querySelector('.product-fallback');
+                                  if (fallback) {
+                                    fallback.classList.remove('hidden');
+                                  }
+                                }}
+                              />
+                            ) : null}
+                            <div className={`h-full w-full flex items-center justify-center text-sm font-medium text-muted-foreground product-fallback ${product.image_url ? 'hidden' : ''}`}>
+                              {product.product_name.charAt(0)}
+                            </div>
+                          </div>
                           <div>
                             <p className="font-medium">{product.product_name}</p>
                             <p className="text-sm text-muted-foreground">

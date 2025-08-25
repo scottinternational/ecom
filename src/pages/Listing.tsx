@@ -2,7 +2,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Filter, Search, Plus, Star, TrendingUp, TrendingDown, ExternalLink, Database, Package, Settings, Globe, ShoppingCart } from "lucide-react";
@@ -375,10 +375,33 @@ const Listing = () => {
                 <TableRow key={listing.id}>
                   <TableCell>
                     <div className="flex items-center space-x-3">
-                      <Avatar className="h-10 w-10">
-                        <AvatarImage src={listing.image} alt={listing.name} />
-                        <AvatarFallback>{listing.name.charAt(0)}</AvatarFallback>
-                      </Avatar>
+                      <div className="h-10 w-10 rounded-full overflow-hidden border border-border bg-muted flex-shrink-0">
+                        <img 
+                          src={listing.image} 
+                          alt={listing.name}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            console.log(`❌ Listing image failed to load for ${listing.name}:`, listing.image);
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            const fallback = target.parentElement?.querySelector('.listing-image-fallback');
+                            if (fallback) {
+                              fallback.classList.remove('hidden');
+                              console.log(`✅ Listing image fallback shown for ${listing.name}`);
+                            } else {
+                              console.log(`❌ Listing image fallback element not found for ${listing.name}`);
+                            }
+                          }}
+                          onLoad={() => {
+                            console.log(`✅ Listing image loaded successfully for ${listing.name}`);
+                          }}
+                        />
+                        <div className="h-full w-full bg-muted flex items-center justify-center text-sm font-medium text-muted-foreground listing-image-fallback hidden">
+                          <div className="text-center">
+                            <div className="text-lg font-bold text-muted-foreground">{listing.name.charAt(0).toUpperCase()}</div>
+                          </div>
+                        </div>
+                      </div>
                       <div>
                         <p className="font-medium">{listing.name}</p>
                         <p className="text-sm text-muted-foreground">{listing.category}</p>

@@ -2,15 +2,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
 import { Skeleton } from "@/components/ui/skeleton";
-import { Filter, ExternalLink, Loader2, GripVertical, Search, X, Download, ChevronDown, ZoomIn } from "lucide-react";
+import { Filter, ExternalLink, Loader2, GripVertical, Search, X, Download, ChevronDown, ZoomIn, Image } from "lucide-react";
 import { ProductBulkUploadDialog } from "@/components/ProductBulkUploadDialog";
 import { ProductCreateDialog } from "@/components/ProductCreateDialog";
 import { ProductFilterDialog, FilterOptions } from "@/components/ProductFilterDialog";
 import { ComprehensiveSearchDialog } from "@/components/ComprehensiveSearchDialog";
+import { AirtableImageManager } from "@/components/AirtableImageManager";
 import { useNotifications } from "@/hooks/useNotifications";
 import { useProducts, Product } from "@/hooks/useProducts";
+import { useProductImages } from '@/providers/ProductImageProvider';
+import { ProductImage } from '@/components/ProductImage';
 import { useEffect, useRef, useCallback, useState } from 'react';
 import { Input } from "@/components/ui/input";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -26,6 +29,7 @@ import {
 const ProductMaster = () => {
   const { addNotification } = useNotifications();
   const { products, loading, error, hasMore, totalCount, fetchProducts, loadMoreProducts, searchProducts, searchAllProducts, fetchAllProductsForExport, deleteProduct, bulkDeleteProducts } = useProducts();
+  const { getProductImage, productImages, loading: airtableLoading, fetchAllProductImages, initializeAirtable } = useProductImages();
   const observerRef = useRef<IntersectionObserver | null>(null);
   const navigate = useNavigate();
 
@@ -64,6 +68,7 @@ const ProductMaster = () => {
     hasImage: null,
     hasBrand: null,
   });
+  const [showAirtableManager, setShowAirtableManager] = useState(false);
 
   const isAllSelected = products.length > 0 && selectedSkus.size === products.length;
   const isIndeterminate = selectedSkus.size > 0 && selectedSkus.size < products.length;
@@ -146,6 +151,70 @@ const ProductMaster = () => {
       }
     };
   }, []);
+
+  // Initialize Airtable images on component mount
+  useEffect(() => {
+    const initializeAirtableImages = async () => {
+      try {
+        const savedConfig = localStorage.getItem('airtable-image-config');
+        if (savedConfig) {
+          const config = JSON.parse(savedConfig);
+          console.log('🔧 Initializing Airtable images with saved config:', config);
+          
+          await initializeAirtable({
+            apiKey: config.apiKey,
+            baseId: config.baseId,
+            productsTable: config.productsTable,
+            brandsTable: config.brandsTable,
+            imageField: config.imageField,
+            skuField: config.skuField,
+            nameField: config.nameField,
+          });
+          
+          console.log('✅ Airtable images initialized successfully');
+          
+          // Fetch all product images
+          await fetchAllProductImages();
+          console.log('✅ All product images fetched from Airtable');
+          
+          // Log the state after fetching
+          setTimeout(() => {
+            console.log('🔍 Post-fetch Airtable images state:', {
+              totalImages: productImages.size,
+              sampleImages: Array.from(productImages.entries()).slice(0, 3)
+            });
+          }, 1000);
+        } else {
+          console.log('ℹ️ No Airtable configuration found in localStorage');
+        }
+      } catch (error) {
+        console.error('❌ Failed to initialize Airtable images:', error);
+      }
+    };
+
+    initializeAirtableImages();
+  }, [initializeAirtable, fetchAllProductImages]);
+
+  // Debug: Log products when they change
+  useEffect(() => {
+    if (products.length > 0) {
+      console.log('📦 Products loaded in ProductMaster:', products.length);
+      console.log('🖼️ Sample product with image:', products[0]);
+      console.log('🖼️ Airtable images loaded:', productImages.size);
+      console.log('🖼️ Airtable images state:', Array.from(productImages.entries()).slice(0, 3));
+      
+      // Log first few products with their image status
+      products.slice(0, 5).forEach((product, index) => {
+        const airtableImage = getProductImage(product.sku);
+        console.log(`🖼️ Product ${index + 1} (${product.sku}):`, {
+          databaseImage: product.image_url || 'none',
+          airtableImage: airtableImage ? `${airtableImage.imageUrls.length} images` : 'none',
+          airtableUrls: airtableImage?.imageUrls || [],
+          hasAirtableImage: !!airtableImage
+        });
+      });
+    }
+  }, [products, productImages, getProductImage]);
 
   // Export functionality
   const exportToCSV = async () => {
@@ -326,7 +395,8 @@ const ProductMaster = () => {
           color: product.color || '',
           size: product.size || '',
           category: product.category || '',
-          created: new Date(product.created_at).toLocaleDateString('en-IN')
+          created: new Date(product.created_at).toLocaleDateString('en-IN'),
+          image_url: product.image_url // Include original image URL
         };
       });
 
@@ -360,6 +430,7 @@ const ProductMaster = () => {
           <table>
             <thead>
               <tr>
+              <th>Image</th>
                 <th>SKU</th>
                 <th>Brand</th>
                 <th>Product</th>
@@ -374,8 +445,14 @@ const ProductMaster = () => {
               </tr>
             </thead>
             <tbody>
-              ${tableData.map(row => `
+              ${tableData.map(row => {
+                // Get image for this specific product
+                const airtableImage = getProductImage(row.sku);
+                const imageUrl = airtableImage?.imageUrls?.[0] || row.image_url || '';
+                
+                return `
                 <tr>
+                  <td>${imageUrl ? `<img src="${imageUrl}" alt="Product Image" style="width: 50px; height: 50px; object-fit: contain; border: 1px solid #e5e7eb; border-radius: 4px;">` : '<div style="width: 50px; height: 50px; background: #f3f4f6; display: flex; align-items: center; justify-content: center; border: 1px solid #e5e7eb; border-radius: 4px;"><span style="font-size: 10px; color: #6b7280; text-align: center;">No<br>Image</span></div>'}</td>
                   <td>${row.sku}</td>
                   <td>${row.brand}</td>
                   <td>${row.product}</td>
@@ -388,7 +465,7 @@ const ProductMaster = () => {
                   <td>${row.category}</td>
                   <td>${row.created}</td>
                 </tr>
-              `).join('')}
+              `}).join('')}
             </tbody>
           </table>
         </body>
@@ -825,6 +902,112 @@ const ProductMaster = () => {
           
           <ProductBulkUploadDialog />
           <ProductCreateDialog />
+                                 <Button 
+              variant="outline"
+              onClick={() => setShowAirtableManager(true)}
+            >
+              <Image className="h-4 w-4 mr-2" />
+              Airtable Images
+              {productImages.size > 0 && (
+                <span className="ml-2 px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded-full">
+                  {productImages.size}
+                </span>
+              )}
+            </Button>
+                       <Button 
+             variant="outline"
+             onClick={async () => {
+               try {
+                 console.log('🔄 Manually refreshing Airtable images...');
+                 await fetchAllProductImages();
+                 console.log('✅ Manual refresh completed');
+                 
+                 // Test a few image URLs after refresh
+                 setTimeout(() => {
+                   console.log('🔍 Testing image URLs after refresh:');
+                   const testSkus = ['SCRN-BU-S', 'SCRN-BU-M', 'SCRN-BU-L'];
+                   testSkus.forEach(sku => {
+                     const airtableImage = getProductImage(sku);
+                     if (airtableImage?.imageUrls?.[0]) {
+                       console.log(`Testing ${sku}: ${airtableImage.imageUrls[0]}`);
+                       // Test image loading using fetch
+                       fetch(airtableImage.imageUrls[0], { method: 'HEAD' })
+                         .then(() => console.log(`✅ Image loads successfully for ${sku}`))
+                         .catch(() => console.log(`❌ Image fails to load for ${sku}`));
+                     } else {
+                       console.log(`❌ No image found for ${sku}`);
+                     }
+                   });
+                 }, 1000);
+               } catch (error) {
+                 console.error('❌ Manual refresh failed:', error);
+               }
+             }}
+             disabled={airtableLoading}
+           >
+             {airtableLoading ? 'Loading...' : 'Refresh Images'}
+           </Button>
+                                  <Button 
+             variant="outline"
+             onClick={() => {
+               console.log('🔍 Debug: Current Airtable images state:', {
+                 totalImages: productImages.size,
+                 sampleImages: Array.from(productImages.entries()).slice(0, 3),
+                 loading: airtableLoading,
+                 allImageKeys: Array.from(productImages.keys())
+               });
+               
+               // Test all visible products
+               console.log('🔍 Testing all visible products:');
+               products.forEach((product, index) => {
+                 const airtableImage = getProductImage(product.sku);
+                 console.log(`${index + 1}. SKU: ${product.sku}`, {
+                   hasAirtableImage: !!airtableImage,
+                   airtableImageUrls: airtableImage?.imageUrls?.length || 0,
+                   firstImageUrl: airtableImage?.imageUrls?.[0] || 'none',
+                   databaseImage: product.image_url || 'none',
+                   finalImageUrl: airtableImage?.imageUrls?.[0] || product.image_url || 'none'
+                 });
+                 
+                 // Test if the image URL is accessible
+                 const testUrl = airtableImage?.imageUrls?.[0] || product.image_url;
+                 if (testUrl && testUrl !== 'none') {
+                   fetch(testUrl, { method: 'HEAD' })
+                     .then(() => console.log(`✅ Image URL accessible for ${product.sku}:`, testUrl))
+                     .catch(() => console.log(`❌ Image URL not accessible for ${product.sku}:`, testUrl));
+                 }
+               });
+               
+               // Test specific SKUs that should have images
+               const testSkus = ['SCRN-BU-S', 'SCRN-BU-M', 'SCRN-BU-L', 'SCRN-BU-XL', 'SCRN-BU-XXL', 'SCRN-BU-XXXL'];
+               console.log('🔍 Testing specific SKUs:');
+               testSkus.forEach(sku => {
+                 const airtableImage = getProductImage(sku);
+                 console.log(`SKU ${sku}:`, {
+                   found: !!airtableImage,
+                   imageUrls: airtableImage?.imageUrls || [],
+                   firstUrl: airtableImage?.imageUrls?.[0] || 'none'
+                 });
+               });
+               
+               // Test if any of the visible products have Airtable images
+               const productsWithAirtableImages = products.filter(product => {
+                 const airtableImage = getProductImage(product.sku);
+                 return !!airtableImage && airtableImage.imageUrls.length > 0;
+               });
+               
+               console.log(`📊 Summary: ${productsWithAirtableImages.length}/${products.length} visible products have Airtable images`);
+               
+               if (productsWithAirtableImages.length === 0) {
+                 console.log('❌ No visible products have Airtable images. This might indicate:');
+                 console.log('1. Images are not being loaded properly');
+                 console.log('2. SKU matching is not working');
+                 console.log('3. The visible products are not in the Airtable data');
+               }
+             }}
+           >
+             Debug Images
+           </Button>
         </div>
       </div>
 
@@ -1123,39 +1306,24 @@ const ProductMaster = () => {
                         </div>
                       </TableCell>
                       <TableCell style={{ width: columnWidths.image }}>
-                        {product.image_url ? (
-                          <div 
-                            className="h-16 w-16 rounded-lg overflow-hidden border border-border cursor-pointer hover:opacity-80 transition-opacity relative group"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleImageClick(product.image_url!, product.product_name);
-                            }}
-                          >
-                            <img 
-                              src={product.image_url} 
-                              alt={product.product_name}
-                              className="h-full w-full object-contain"
-                              onError={(e) => {
-                                const target = e.target as HTMLImageElement;
-                                target.style.display = 'none';
-                                target.nextElementSibling?.classList.remove('hidden');
-                              }}
-                            />
-                            <div className="h-full w-full bg-muted flex items-center justify-center text-sm font-medium text-muted-foreground hidden">
-                              {product.product_name.charAt(0)}
-                            </div>
-                            {/* Zoom overlay */}
-                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
-                              <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center border border-border">
-                            <svg className="h-6 w-6 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                          </div>
-                        )}
+                        <ProductImage
+                          sku={product.sku}
+                          productName={product.product_name}
+                          imageUrl={product.image_url}
+                          airtableImageUrl={getProductImage(product.sku)?.imageUrls?.[0]}
+                          size="lg"
+                          showZoom={true}
+                          showAirtableIndicator={true}
+                          onClick={handleImageClick}
+                          onImageLoad={(sku, source) => {
+                            if (index < 3) {
+                              console.log(`✅ Product image loaded for ${sku} from ${source}`);
+                            }
+                          }}
+                          onImageError={(sku, imageUrl) => {
+                            console.log(`❌ Product image failed to load for ${sku}:`, imageUrl);
+                          }}
+                        />
                       </TableCell>
                       <TableCell style={{ width: columnWidths.sku }}>
                         <button
@@ -1165,32 +1333,50 @@ const ProductMaster = () => {
                           {product.sku}
                         </button>
                       </TableCell>
-                      <TableCell style={{ width: columnWidths.brand }}>
-                        {product.brand ? (
-                          <div className="flex items-center space-x-2">
-                            {product.brand.logo && (
-                              <div className="h-16 w-16 rounded-lg overflow-hidden border border-border bg-muted flex-shrink-0">
-                                <img 
-                                  src={product.brand.logo} 
-                                  alt={product.brand.brand}
-                                  className="h-full w-full object-contain"
-                                  onError={(e) => {
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                    target.nextElementSibling?.classList.remove('hidden');
-                                  }}
-                                />
-                                <div className="h-full w-full bg-muted flex items-center justify-center text-sm font-medium text-muted-foreground hidden">
-                                  {product.brand.brand.charAt(0)}
-                                </div>
-                              </div>
-                            )}
-                            <span className="text-sm font-medium whitespace-normal break-words">{product.brand.brand}</span>
-                          </div>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">No brand</span>
-                        )}
-                      </TableCell>
+                                             <TableCell style={{ width: columnWidths.brand }}>
+                         {product.brand ? (
+                           <div className="flex items-center space-x-2">
+                             {product.brand.logo ? (
+                               <div className="h-16 w-16 rounded-lg overflow-hidden border border-border bg-muted flex-shrink-0">
+                                 <img 
+                                   src={product.brand.logo} 
+                                   alt={product.brand.brand}
+                                   className="h-full w-full object-contain"
+                                   onError={(e) => {
+                                     console.log(`❌ Brand logo failed to load for ${product.brand.brand}:`, product.brand.logo);
+                                     const target = e.target as HTMLImageElement;
+                                     target.style.display = 'none';
+                                     const fallback = target.parentElement?.querySelector('.brand-logo-fallback');
+                                     if (fallback) {
+                                       fallback.classList.remove('hidden');
+                                       console.log(`✅ Brand logo fallback shown for ${product.brand.brand}`);
+                                     } else {
+                                       console.log(`❌ Brand logo fallback element not found for ${product.brand.brand}`);
+                                     }
+                                   }}
+                                   onLoad={() => {
+                                     console.log(`✅ Brand logo loaded successfully for ${product.brand.brand}`);
+                                   }}
+                                 />
+                                 <div className="h-full w-full bg-muted flex items-center justify-center text-sm font-medium text-muted-foreground brand-logo-fallback hidden">
+                                   <div className="text-center">
+                                     <div className="text-lg font-bold text-muted-foreground">{product.brand.brand.charAt(0).toUpperCase()}</div>
+                                   </div>
+                                 </div>
+                               </div>
+                             ) : (
+                               <div className="h-16 w-16 rounded-lg bg-muted flex items-center justify-center border border-border">
+                                 <div className="text-center">
+                                   <div className="text-lg font-bold text-muted-foreground">{product.brand.brand.charAt(0).toUpperCase()}</div>
+                                 </div>
+                               </div>
+                             )}
+                             <span className="text-sm font-medium whitespace-normal break-words">{product.brand.brand}</span>
+                           </div>
+                         ) : (
+                           <span className="text-sm text-muted-foreground">No brand</span>
+                         )}
+                       </TableCell>
                       <TableCell style={{ width: columnWidths.product }}>
                         <div className="flex items-center space-x-3">
                           <div className="whitespace-normal break-words">
@@ -1352,18 +1538,50 @@ const ProductMaster = () => {
                     alt={previewImage.alt}
                     className="max-w-full max-h-[70vh] object-contain"
                     onError={(e) => {
+                      console.log(`❌ Preview image failed to load:`, previewImage.url);
                       const target = e.target as HTMLImageElement;
                       target.style.display = 'none';
-                      target.nextElementSibling?.classList.remove('hidden');
+                      const fallback = target.nextElementSibling;
+                      if (fallback) {
+                        fallback.classList.remove('hidden');
+                        console.log(`✅ Preview fallback shown`);
+                      } else {
+                        console.log(`❌ Preview fallback element not found`);
+                      }
+                    }}
+                    onLoad={() => {
+                      console.log(`✅ Preview image loaded successfully:`, previewImage.url);
                     }}
                   />
                   <div className="absolute inset-0 bg-muted flex items-center justify-center text-lg font-medium text-muted-foreground hidden">
-                    <span>Image not available</span>
+                    <div className="text-center">
+                      <div className="text-4xl mb-2">🖼️</div>
+                      <span>Image not available</span>
+                      <p className="text-sm mt-1">The image URL is no longer accessible</p>
+                    </div>
                   </div>
                 </div>
               </div>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Airtable Image Manager Dialog */}
+      <Dialog open={showAirtableManager} onOpenChange={setShowAirtableManager}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <Image className="h-5 w-5" />
+              <span>Airtable Image Management</span>
+            </DialogTitle>
+          </DialogHeader>
+                     <AirtableImageManager 
+             onImagesLoaded={() => {
+               // This callback is not needed since ProductMaster uses the same useProductImages hook
+               // The state will be automatically updated
+             }}
+           />
         </DialogContent>
       </Dialog>
     </div>

@@ -33,7 +33,8 @@ import {
   Globe,
   Link,
   Building2,
-  Store
+  Store,
+  Upload
 } from "lucide-react";
 
 const menuItems = [
@@ -128,6 +129,12 @@ const menuItems = [
     title: "Operations",
     url: "/operations",
     icon: Cog,
+    badge: null
+  },
+  {
+    title: "Uploads",
+    url: "/uploads",
+    icon: Upload,
     badge: null
   },
   {

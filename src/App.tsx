@@ -6,6 +6,7 @@ import { Routes, Route } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { ThemeProvider } from "@/hooks/useTheme";
 import { NotificationProvider } from "@/hooks/useNotifications";
+import { ProductImageProvider } from "@/providers/ProductImageProvider";
 import Dashboard from "./pages/Dashboard";
 import RnD from "./pages/RnD";
 import Production from "./pages/Production";
@@ -25,6 +26,7 @@ import ProductMaster from "./pages/ProductMaster";
 import ProductDetails from "./pages/ProductDetails";
 import Listing from "./pages/Listing";
 import Mapping from "./pages/Mapping";
+import ChannelSkuMappingDetail from "./pages/ChannelSkuMappingDetail";
 import Brands from "./pages/Brands";
 import Marketplaces from "./pages/Marketplaces";
 import Settings from "./pages/Settings";
@@ -38,9 +40,10 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
       <NotificationProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
+        <ProductImageProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
           <Routes>
             <Route path="/auth" element={<Auth />} />
             <Route path="/" element={
@@ -138,6 +141,11 @@ const App = () => (
                 <Layout><Mapping /></Layout>
               </ProtectedRoute>
             } />
+            <Route path="/products/mapping/:id" element={
+              <ProtectedRoute>
+                <Layout><ChannelSkuMappingDetail /></Layout>
+              </ProtectedRoute>
+            } />
             <Route path="/products/brands" element={
               <ProtectedRoute>
                 <Layout><Brands /></Layout>
@@ -157,9 +165,10 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
         </TooltipProvider>
-      </NotificationProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+      </ProductImageProvider>
+    </NotificationProvider>
+  </ThemeProvider>
+</QueryClientProvider>
 );
 
 export default App;
